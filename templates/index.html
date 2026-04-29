@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Cairo Transportation Optimization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="app-container">
+    <nav class="app-navbar navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-traffic-light me-2"></i>
+                Smart Cairo Transportation
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-section="network">
+                            <i class="fas fa-project-diagram me-1"></i> Network Design
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="traffic">
+                            <i class="fas fa-car me-1"></i> Traffic Flow
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="emergency">
+                            <i class="fas fa-ambulance me-1"></i> Emergency Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="public">
+                            <i class="fas fa-bus me-1"></i> Public Transit
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="signals">
+                            <i class="fas fa-traffic-light me-1"></i> Traffic Signals
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-content container mt-4">
+        <div id="network-section" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-project-diagram me-2"></i>Infrastructure Network Design</h2>
+                <p class="section-description">Optimize Cairo's road network with minimum spanning tree algorithms</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cogs me-2"></i>Minimum Spanning Tree Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="mst-form">
+                                <div class="mb-3">
+                                    <label class="form-label">Algorithm</label>
+                                    <select class="form-select" name="algorithm">
+                                        <option value="prim">Prim's Algorithm</option>
+                                        <option value="kruskal">Kruskal's Algorithm</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3 form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" name="prioritize_population" checked>
+                                    <label class="form-check-label">Prioritize High Population Areas</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-magic me-2"></i>Optimize Network
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="app-card card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Optimization Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="mst-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-chart-line"></i>
+                                    <p>Run the optimization to see results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marked-alt me-2"></i>Road Network Visualization</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="network-map" class="app-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="traffic-section" class="content-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-car me-2"></i>Traffic Flow Optimization</h2>
+                <p class="section-description">Find optimal routes considering current traffic conditions</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-route me-2"></i>Route Planning</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="route-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Start Location</label>
+                                        <select class="form-select" name="start" id="start-location">
+                                            <!-- Filled by JavaScript -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">End Location</label>
+                                        <select class="form-select" name="end" id="end-location">
+                                            <!-- Filled by JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Time of Day</label>
+                                    <select class="form-select" name="time_of_day">
+                                        <option value="morning">Morning Peak (7-9 AM)</option>
+                                        <option value="afternoon">Afternoon (12-4 PM)</option>
+                                        <option value="evening">Evening Peak (5-7 PM)</option>
+                                        <option value="night">Night (9 PM-6 AM)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search-location me-2"></i>Find Optimal Route
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="app-card card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Route Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="route-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-directions"></i>
+                                    <p>Enter locations to find the best route</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marked-alt me-2"></i>Route Visualization</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="route-map" class="app-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="emergency-section" class="content-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-ambulance me-2"></i>Emergency Response Planning</h2>
+                <p class="section-description">Plan emergency routes with priority access</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-first-aid me-2"></i>Emergency Route Planning</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="emergency-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Emergency Location</label>
+                                        <select class="form-select" name="start" id="emergency-start">
+                                            <!-- Filled by JavaScript -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hospital</label>
+                                        <select class="form-select" name="end" id="emergency-end">
+                                            <!-- Filled by JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Time of Day</label>
+                                    <select class="form-select" name="time_of_day">
+                                        <option value="morning">Morning Peak (7-9 AM)</option>
+                                        <option value="afternoon">Afternoon (12-4 PM)</option>
+                                        <option value="evening">Evening Peak (5-7 PM)</option>
+                                        <option value="night">Night (9 PM-6 AM)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-siren-on me-2"></i>Find Emergency Route
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="app-card card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Emergency Route Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="emergency-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-ambulance"></i>
+                                    <p>Enter locations to find the emergency route</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marked-alt me-2"></i>Emergency Route Visualization</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="emergency-map" class="app-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="public-section" class="content-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-bus me-2"></i>Public Transit Optimization</h2>
+                <p class="section-description">Optimize public transportation routes and schedules</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-sliders-h me-2"></i>Public Transportation Optimization</h5>
+                        </div>
+                        <div class="card-body">
+                            <button id="optimize-transport-btn" class="btn btn-primary">
+                                <i class="fas fa-cogs me-2"></i>Optimize Public Transport
+                            </button>
+                        </div>
+                    </div>
+                    <div class="app-card card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-pie me-2"></i>Optimization Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="transport-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <p>Run the optimization to see results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marked-alt me-2"></i>Public Transport Network</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="transport-map" class="app-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="signals-section" class="content-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-traffic-light me-2"></i>Traffic Signal Optimization</h2>
+                <p class="section-description">Optimize traffic signal timing for better flow</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-stopwatch me-2"></i>Signal Optimization</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="signal-form">
+                                <div class="mb-3">
+                                    <label class="form-label">Time of Day</label>
+                                    <select class="form-select" name="time_of_day">
+                                        <option value="morning">Morning Peak (7-9 AM)</option>
+                                        <option value="afternoon">Afternoon (12-4 PM)</option>
+                                        <option value="evening">Evening Peak (5-7 PM)</option>
+                                        <option value="night">Night (9 PM-6 AM)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Intersections (leave empty for major intersections)</label>
+                                    <select class="form-select" name="intersections" multiple id="intersections-select">
+                                        <!-- Filled by JavaScript -->
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-stopwatch-20 me-2"></i>Optimize Signals
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="app-card card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-clipboard-list me-2"></i>Optimized Signal Plans</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="signal-results">
+                                <div class="empty-state">
+                                    <i class="fas fa-traffic-light"></i>
+                                    <p>Run the optimization to see signal plans</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="app-card card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marked-alt me-2"></i>Signal Priority Visualization</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="signal-map" class="app-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

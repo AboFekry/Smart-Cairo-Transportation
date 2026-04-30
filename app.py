@@ -153,3 +153,5 @@ def find_emergency_route():
     
 if __name__ == '__main__':
     app.run()
+    
+handler = app

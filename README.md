@@ -160,6 +160,3 @@ docker run --rm -p 5000:5000 cairo-transport
 - All travel times use the BPR formula `t = t₀·(1 + 0.15·(V/C)⁴)` with a
   free-flow speed of 60 km/h.
 
-## License
-
-Educational use — CSE112 coursework.

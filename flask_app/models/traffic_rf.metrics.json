@@ -1,0 +1,40 @@
+{
+  "model": "RandomForestRegressor",
+  "n_estimators": 20,
+  "max_depth": 8,
+  "samples_total": 112,
+  "samples_train": 89,
+  "samples_test": 23,
+  "test_mae_vehicles_per_hour": 104.93,
+  "test_rmse_vehicles_per_hour": 164.08,
+  "test_r2": 0.9713,
+  "train_mae_vehicles_per_hour": 41.59,
+  "train_r2": 0.9956,
+  "train_time_ms": 69.57,
+  "feature_importances": [
+    {
+      "feature": "hour_cos",
+      "importance": 0.7813
+    },
+    {
+      "feature": "capacity",
+      "importance": 0.1883
+    },
+    {
+      "feature": "distance_km",
+      "importance": 0.0215
+    },
+    {
+      "feature": "mean_endpoint_population",
+      "importance": 0.007
+    },
+    {
+      "feature": "hour_sin",
+      "importance": 0.0018
+    },
+    {
+      "feature": "is_existing",
+      "importance": 0.0
+    }
+  ]
+}

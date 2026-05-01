@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.venv/
+node_modules/
+artifacts/
+exports/
+attached_assets/
+.local/
+.replit
+replit.nix
+*.zip
+.cache/
+.pytest_cache/

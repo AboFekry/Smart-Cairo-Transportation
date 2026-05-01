@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cairo Smart Transportation Network</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">CTN</div>
+        <div>
+          <h1>Cairo Smart Transportation Network</h1> 
+        </div>
+      </div>
+      <div class="legend">
+        <span class="legend-pill existing">Existing road</span>
+        <span class="legend-pill potential">Potential road</span>
+        <span class="legend-pill mst">MST edge</span>
+        <span class="legend-pill route">Route</span>
+        <span class="legend-pill emergency">Emergency</span>
+      </div>
+    </header>
+
+    <main>
+      <aside class="sidebar">
+        <nav class="tabs">
+          <button class="tab active" data-tab="overview">Overview</button>
+          <button class="tab" data-tab="mst">Network Design</button>
+          <button class="tab" data-tab="route">Routing</button>
+          <button class="tab" data-tab="emergency">Emergency</button>
+          <button class="tab" data-tab="transit">Transit</button>
+          <button class="tab" data-tab="maintenance">Maintenance</button>
+          <button class="tab" data-tab="signals">Signals</button>
+          <button class="tab" data-tab="race">Race</button>
+          <button class="tab" data-tab="ml">ML Forecast</button>
+        </nav>
+
+        <!-- Overview -->
+        <section class="panel active" id="panel-overview">
+          <h2>Network Overview</h2>
+          <p class="muted">
+            Greater Cairo metropolitan transportation network — 15
+            neighborhoods, 10 facilities, 28 existing roads, 15 potential roads.
+          </p>
+          <div class="stats" id="overview-stats"></div>
+
+          <h3>Map controls</h3>
+          <label class="checkbox">
+            <input type="checkbox" id="show-existing" checked />
+            <span>Show existing roads</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="show-potential" />
+            <span>Show potential roads</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="show-metro" checked />
+            <span>Show metro lines</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="show-labels" checked />
+            <span>Show node labels</span>
+          </label>
+
+          <h3>Color roads by traffic</h3>
+          <select id="period-select" class="select">
+            <option value="">No traffic overlay</option>
+            <option value="morning" selected>Morning peak</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening peak</option>
+            <option value="night">Night</option>
+          </select>
+        </section>
+
+        <!-- MST -->
+        <section class="panel" id="panel-mst">
+          <h2>A. Minimum Spanning Tree</h2>
+          <p class="muted">
+            Kruskal's algorithm designs a cost-efficient road network that
+            connects every neighborhood and facility.
+          </p>
+          <label class="checkbox">
+            <input type="checkbox" id="mst-prioritize" checked />
+            <span>Prioritize high-population areas</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="mst-critical" checked />
+            <span>Force critical-facility connectivity</span>
+          </label>
+          <button class="btn primary" id="mst-run">Compute MST</button>
+          <div class="result" id="mst-result"></div>
+        </section>
+
+        <!-- Routing -->
+        <section class="panel" id="panel-route">
+          <h2>B. Shortest-Path Routing</h2>
+          <p class="muted">
+            Compare Dijkstra (distance), Dijkstra (time-of-day), and A*
+            (Haversine heuristic).
+          </p>
+
+          <label
+            >From
+            <select id="route-from" class="select"></select>
+          </label>
+          <label
+            >To
+            <select id="route-to" class="select"></select>
+          </label>
+          <label
+            >Time of day
+            <select id="route-period" class="select">
+              <option value="morning" selected>Morning peak</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening peak</option>
+              <option value="night">Night</option>
+            </select>
+          </label>
+          <div class="row">
+            <button class="btn primary" id="route-run">Find route</button>
+            <button class="btn" id="route-clear">Clear</button>
+          </div>
+          <div class="result" id="route-result"></div>
+        </section>
+
+        <!-- Emergency -->
+        <section class="panel" id="panel-emergency">
+          <h2>C. Emergency Response</h2>
+          <p class="muted">
+            A* with signal preemption greedily prioritizes emergency vehicles.
+            Optionally pick a target — otherwise we route to the nearest medical
+            facility.
+          </p>
+          <label
+            >Incident at
+            <select id="er-source" class="select"></select>
+          </label>
+          <label
+            >Destination
+            <select id="er-target" class="select">
+              <option value="">Nearest hospital</option>
+            </select>
+          </label>
+          <label
+            >Time of day
+            <select id="er-period" class="select">
+              <option value="morning" selected>Morning peak</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening peak</option>
+              <option value="night">Night</option>
+            </select>
+          </label>
+          <button class="btn danger" id="er-run">Dispatch</button>
+          <div class="result" id="er-result"></div>
+        </section>
+
+        <!-- Transit -->
+        <section class="panel" id="panel-transit">
+          <h2>D. Public Transit Optimization</h2>
+          <p class="muted">
+            Bounded-knapsack DP allocates a fleet across metro &amp; bus lines
+            to maximize daily passengers served.
+          </p>
+          <label
+            >Total vehicles to allocate
+            <input
+              type="number"
+              id="transit-vehicles"
+              class="input"
+              value="300"
+              min="50"
+              max="800"
+            />
+          </label>
+          <button class="btn primary" id="transit-run">
+            Optimize schedule
+          </button>
+          <div class="result" id="transit-result"></div>
+        </section>
+
+        <!-- Maintenance -->
+        <section class="panel" id="panel-maintenance">
+          <h2>D. Road Maintenance Allocation</h2>
+          <p class="muted">
+            0/1 Knapsack DP picks the subset of roads to repair under a fixed
+            budget that maximizes total maintenance benefit.
+          </p>
+          <label
+            >Budget (Million EGP)
+            <input
+              type="number"
+              id="maint-budget"
+              class="input"
+              value="500"
+              min="50"
+              max="3000"
+            />
+          </label>
+          <button class="btn primary" id="maint-run">Optimize budget</button>
+          <div class="result" id="maint-result"></div>
+        </section>
+
+        <!-- Signals -->
+        <section class="panel" id="panel-signals">
+          <h2>E. Traffic Signal Optimization</h2>
+          <p class="muted">
+            Greedy green-time allocation: each intersection's 90s cycle is split
+            proportionally to approach demand.
+          </p>
+          <label
+            >Time of day
+            <select id="sig-period" class="select">
+              <option value="morning" selected>Morning peak</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening peak</option>
+              <option value="night">Night</option>
+            </select>
+          </label>
+          <button class="btn primary" id="sig-run">Optimize signals</button>
+          <div class="result" id="sig-result"></div>
+        </section>
+
+        <!-- Race -->
+        <section class="panel" id="panel-race">
+          <h2>Algorithm Race <span class="pill">Bonus</span></h2>
+          <p class="muted">
+            Watch <span style="color: #f08a4b">Dijkstra</span> and
+            <span style="color: #4ec3c1">A*</span> explore the network step by
+            step, racing to the destination.
+          </p>
+
+          <label
+            >From
+            <select id="race-from" class="select"></select>
+          </label>
+          <label
+            >To
+            <select id="race-to" class="select"></select>
+          </label>
+          <label
+            >Time of day
+            <select id="race-period" class="select">
+              <option value="morning" selected>Morning peak</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening peak</option>
+              <option value="night">Night</option>
+            </select>
+          </label>
+          <label
+            >Animation speed: <span id="race-speed-label">Normal</span>
+            <input
+              type="range"
+              id="race-speed"
+              min="60"
+              max="500"
+              step="20"
+              value="220"
+              class="input"
+            />
+          </label>
+          <div class="row">
+            <button class="btn primary" id="race-run">Start race</button>
+            <button class="btn" id="race-clear">Clear</button>
+          </div>
+
+          <div id="race-board"></div>
+        </section>
+
+        <!-- ML Forecast -->
+        <section class="panel" id="panel-ml">
+          <h2>F. ML Traffic Forecast <span class="pill">Bonus</span></h2>
+          <p class="muted">
+            A Random Forest trained on the provided 4-period traffic data
+            predicts hourly congestion across all 24 hours and recolors the map.
+          </p>
+          <button class="btn primary" id="ml-train">Train model</button>
+          <div class="result" id="ml-metrics"></div>
+
+          <h3>Forecast hour</h3>
+          <label
+            >Hour of day: <span id="ml-hour-label">8:00</span>
+            <input
+              type="range"
+              id="ml-hour"
+              min="0"
+              max="23"
+              step="1"
+              value="8"
+              class="input"
+            />
+          </label>
+          <button class="btn primary" id="ml-predict">
+            Predict &amp; recolor map
+          </button>
+          <div class="result" id="ml-result"></div>
+          
+          <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);" />
+          <h3>Custom Prediction</h3>
+          <p class="muted">Enter hypothetical features to predict traffic for a specific road.</p>
+          <label>Distance (km): <input type="number" id="ml-custom-dist" class="input" value="5" step="0.1" min="0"></label>
+          <label>Capacity (veh/h): <input type="number" id="ml-custom-cap" class="input" value="3000" step="100" min="0"></label>
+          <label>Mean Population: <input type="number" id="ml-custom-pop" class="input" value="50000" step="1000" min="0"></label>
+          <label class="checkbox">
+            <input type="checkbox" id="ml-custom-existing" checked />
+            <span>Is Existing Road</span>
+          </label>
+          <button class="btn primary" id="ml-custom-predict">Predict Custom Features</button>
+          <div class="result" id="ml-custom-result"></div>
+
+        </section>
+      </aside>
+
+      <section class="map-wrap">
+        <div id="map"></div>
+        <div class="map-overlay" id="map-status">Loading network…</div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>

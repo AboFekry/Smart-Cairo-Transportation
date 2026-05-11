@@ -16,7 +16,7 @@ const STATE = {
     raceAstar: null,
     ml: null,
   },
-  ml: {trained: false, lastForecast: null},
+  ml: { trained: false, lastForecast: null },
   map: null,
 };
 
@@ -27,9 +27,14 @@ const STATE = {
  * @param {string} name   - filename without extension
  */
 function downloadJSON(data, name = "cairo_result") {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement("a"), {href: url, download: `${name}.json`});
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `${name}.json`,
+  });
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -61,18 +66,26 @@ function initMap() {
     preferCanvas: true,
   });
 
-  L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
-      subdomains: "abcd",
-    }
-  ).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    subdomains: "abcd",
+  }).addTo(map);
 
   STATE.map = map;
-  for (const k of ["existing", "potential", "metro", "mst", "route", "emergency",
-                   "raceDijkstra", "raceAstar", "ml", "nodes", "labels"]) {
+  for (const k of [
+    "existing",
+    "potential",
+    "metro",
+    "mst",
+    "route",
+    "emergency",
+    "raceDijkstra",
+    "raceAstar",
+    "ml",
+    "nodes",
+    "labels",
+  ]) {
     STATE.layers[k] = L.layerGroup().addTo(map);
   }
 }
@@ -114,6 +127,7 @@ function drawNetwork() {
 
   const period = document.getElementById("period-select").value;
   const showExisting = document.getElementById("show-existing").checked;
+  const showSynthetic = document.getElementById("show-synthetic").checked;
   const showPotential = document.getElementById("show-potential").checked;
   const showMetro = document.getElementById("show-metro").checked;
   const showLabels = document.getElementById("show-labels").checked;
@@ -123,12 +137,21 @@ function drawNetwork() {
     const a = STATE.nodesById[e.a];
     const b = STATE.nodesById[e.b];
     if (!a || !b) continue;
-    const latlngs = [[a.y, a.x], [b.y, b.x]];
+    const latlngs = [
+      [a.y, a.x],
+      [b.y, b.x],
+    ];
 
     if (e.kind === "existing") {
       if (!showExisting) continue;
       let color = "#5778c2";
       let weight = 2.5;
+      let dashArray = null;
+      if (e.synthetic) {
+        if (!showSynthetic) continue;
+        dashArray = "6 6";
+        color = "#8a9bc4"; // lighter color for synthetic
+      }
       if (period && e[period] != null && e.capacity) {
         const ratio = e[period] / e.capacity;
         // green -> yellow -> orange -> red
@@ -139,16 +162,20 @@ function drawNetwork() {
         weight = 3;
       }
       const line = L.polyline(latlngs, {
-        color, weight, opacity: 0.85,
+        color,
+        weight,
+        opacity: 0.85,
+        dashArray,
       });
       line.bindPopup(
         `<b>${a.name} ↔ ${b.name}</b><br>` +
           `Distance: ${e.distance_km} km<br>` +
           `Capacity: ${e.capacity} veh/h<br>` +
           `Condition: ${e.condition}/10` +
+          (e.synthetic ? "<br><i>(Synthetic edge)</i>" : "") +
           (e.morning != null
             ? `<br>Morning: ${e.morning} · Evening: ${e.evening}`
-            : "")
+            : ""),
       );
       STATE.layers.existing.addLayer(line);
     } else {
@@ -163,7 +190,7 @@ function drawNetwork() {
         `<b>${a.name} ↔ ${b.name}</b> <i>(potential)</i><br>` +
           `Distance: ${e.distance_km} km<br>` +
           `Capacity: ${e.capacity} veh/h<br>` +
-          `Construction: ${e.cost_million_egp} M EGP`
+          `Construction: ${e.cost_million_egp} M EGP`,
       );
       STATE.layers.potential.addLayer(line);
     }
@@ -183,7 +210,9 @@ function drawNetwork() {
         weight: 5,
         opacity: 0.55,
       });
-      poly.bindPopup(`<b>${line.name}</b><br>Daily passengers: ${line.daily_passengers.toLocaleString()}`);
+      poly.bindPopup(
+        `<b>${line.name}</b><br>Daily passengers: ${line.daily_passengers.toLocaleString()}`,
+      );
       STATE.layers.metro.addLayer(poly);
     });
   }
@@ -202,7 +231,7 @@ function drawNetwork() {
       : "";
     m.bindPopup(
       `<b>${n.id} · ${n.name}</b><br>${n.type}${popLine}` +
-        (n.critical ? "<br><i>Critical facility</i>" : "")
+        (n.critical ? "<br><i>Critical facility</i>" : ""),
     );
     STATE.layers.nodes.addLayer(m);
 
@@ -248,11 +277,19 @@ function renderOverview() {
 
 function populateNodeSelectors() {
   const groups = {
-    "Neighborhoods": STATE.network.nodes.filter((n) => n.category === "neighborhood"),
-    "Facilities": STATE.network.nodes.filter((n) => n.category === "facility"),
+    Neighborhoods: STATE.network.nodes.filter(
+      (n) => n.category === "neighborhood",
+    ),
+    Facilities: STATE.network.nodes.filter((n) => n.category === "facility"),
   };
-  const selects = ["route-from", "route-to", "er-source", "er-target",
-                   "race-from", "race-to"];
+  const selects = [
+    "route-from",
+    "route-to",
+    "er-source",
+    "er-target",
+    "race-from",
+    "race-to",
+  ];
   selects.forEach((id) => {
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -303,15 +340,25 @@ function drawPath(layerName, path, options) {
   const end = STATE.nodesById[path[path.length - 1]];
   STATE.layers[layerName].addLayer(
     L.circleMarker([start.y, start.x], {
-      radius: 9, color: options.color, weight: 3, fillColor: "#0b1220", fillOpacity: 1,
-    }).bindTooltip("Start: " + start.name, {permanent: false})
+      radius: 9,
+      color: options.color,
+      weight: 3,
+      fillColor: "#0b1220",
+      fillOpacity: 1,
+    }).bindTooltip("Start: " + start.name, { permanent: false }),
   );
   STATE.layers[layerName].addLayer(
     L.circleMarker([end.y, end.x], {
-      radius: 9, color: options.color, weight: 3, fillColor: options.color, fillOpacity: 1,
-    }).bindTooltip("End: " + end.name, {permanent: false})
+      radius: 9,
+      color: options.color,
+      weight: 3,
+      fillColor: options.color,
+      fillOpacity: 1,
+    }).bindTooltip("End: " + end.name, { permanent: false }),
   );
-  STATE.map.fitBounds(L.polyline(pathLatLngs(path)).getBounds(), {padding: [60, 60]});
+  STATE.map.fitBounds(L.polyline(pathLatLngs(path)).getBounds(), {
+    padding: [60, 60],
+  });
 }
 
 function pathToNames(path) {
@@ -325,8 +372,12 @@ function setupTabs() {
     tab.addEventListener("click", () => {
       tabs.forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
-      document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-      document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+      document
+        .querySelectorAll(".panel")
+        .forEach((p) => p.classList.remove("active"));
+      document
+        .getElementById("panel-" + tab.dataset.tab)
+        .classList.add("active");
     });
   });
 }
@@ -337,7 +388,8 @@ async function runMST() {
   res.innerHTML = "Computing minimum spanning tree…";
   const params = new URLSearchParams({
     prioritize_population: document.getElementById("mst-prioritize").checked,
-    ensure_critical_connectivity: document.getElementById("mst-critical").checked,
+    ensure_critical_connectivity:
+      document.getElementById("mst-critical").checked,
   });
   const data = await fetch("/api/mst?" + params).then((r) => r.json());
 
@@ -348,27 +400,36 @@ async function runMST() {
     const b = STATE.nodesById[e.b];
     if (!a || !b) continue;
     const isPotential = e.kind === "potential";
-    const line = L.polyline([[a.y, a.x], [b.y, b.x]], {
-      color: "#e8b659",
-      weight: 4,
-      opacity: 0.95,
-      dashArray: isPotential ? "6 6" : null,
-    });
+    const line = L.polyline(
+      [
+        [a.y, a.x],
+        [b.y, b.x],
+      ],
+      {
+        color: "#e8b659",
+        weight: 4,
+        opacity: 0.95,
+        dashArray: isPotential ? "6 6" : null,
+      },
+    );
     line.bindPopup(
       `<b>${a.name} ↔ ${b.name}</b><br>` +
         `Distance: ${e.distance.toFixed(1)} km<br>` +
         `Capacity: ${e.capacity} veh/h<br>` +
-        (isPotential ? `Construction: ${e.cost_million_egp} M EGP` : `Condition: ${e.condition}/10`)
+        (isPotential
+          ? `Construction: ${e.cost_million_egp} M EGP`
+          : `Condition: ${e.condition}/10`),
     );
     STATE.layers.mst.addLayer(line);
   }
 
-  const isolatedNote = data.isolated_nodes && data.isolated_nodes.length
-    ? `<p class="muted" style="margin-top:8px;font-size:11px;">
+  const isolatedNote =
+    data.isolated_nodes && data.isolated_nodes.length
+      ? `<p class="muted" style="margin-top:8px;font-size:11px;">
          Note: ${data.isolated_nodes.length} facilities have no road connections in the provided dataset:
          ${data.isolated_nodes.map((id) => STATE.nodesById[id]?.name || id).join(", ")}
        </p>`
-    : "";
+      : "";
   res.innerHTML = `
     <div>
       <span class="pill">Edges: ${data.edge_count}</span>
@@ -392,16 +453,17 @@ async function runRoute() {
   const dst = document.getElementById("route-to").value;
   const period = document.getElementById("route-period").value;
   if (src === dst) {
-    document.getElementById("route-result").innerHTML = "<i>Choose two different nodes.</i>";
+    document.getElementById("route-result").innerHTML =
+      "<i>Choose two different nodes.</i>";
     return;
   }
   document.getElementById("route-result").innerHTML = "Computing routes…";
   const data = await fetch(
-    `/api/route/compare?source=${src}&target=${dst}&period=${period}`
+    `/api/route/compare?source=${src}&target=${dst}&period=${period}`,
   ).then((r) => r.json());
 
   // Draw the A* time-aware route as the primary.
-  drawPath("route", data.astar_time.path, {color: "#4ec3c1", weight: 5});
+  drawPath("route", data.astar_time.path, { color: "#4ec3c1", weight: 5 });
 
   const dijkstraDist = data.dijkstra_distance;
   const dijkstraTime = data.dijkstra_time;
@@ -419,7 +481,11 @@ async function runRoute() {
       A* uses a Haversine heuristic — typically expands fewer nodes than Dijkstra for the same answer.
     </p>
   `;
-  addDownloadBtn(document.getElementById("route-result"), data, "routing_result");
+  addDownloadBtn(
+    document.getElementById("route-result"),
+    data,
+    "routing_result",
+  );
 }
 
 function clearRoute() {
@@ -430,7 +496,7 @@ function clearRoute() {
 }
 
 // ---------------- Algorithm Race (side-by-side visualizer) ----------------
-const RACE = {running: false, abort: false};
+const RACE = { running: false, abort: false };
 
 function clearRace() {
   RACE.abort = true;
@@ -489,7 +555,7 @@ async function runRace() {
   document.getElementById("race-board").innerHTML = "Loading race…";
 
   const data = await fetch(
-    `/api/route/race?source=${src}&target=${dst}&period=${period}`
+    `/api/route/race?source=${src}&target=${dst}&period=${period}`,
   ).then((r) => r.json());
 
   STATE.layers.route.clearLayers();
@@ -501,17 +567,24 @@ async function runRace() {
     const s = STATE.nodesById[src];
     const e = STATE.nodesById[dst];
     if (s && e) {
-      STATE.map.fitBounds(L.latLngBounds([[s.y, s.x], [e.y, e.x]]),
-        {padding: [80, 80]});
+      STATE.map.fitBounds(
+        L.latLngBounds([
+          [s.y, s.x],
+          [e.y, e.x],
+        ]),
+        { padding: [80, 80] },
+      );
     }
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
 
   renderRaceBoard(data.dijkstra, data.astar);
 
   RACE.running = true;
   RACE.abort = false;
 
-  const winner = {algo: null};
+  const winner = { algo: null };
   const stepMs = speed;
 
   const dPromise = animateExpansion({
@@ -548,14 +621,23 @@ async function runRace() {
 
   // Draw final paths
   if (data.astar.path && data.astar.path.length >= 2) {
-    STATE.layers.raceAstar.addLayer(L.polyline(pathLatLngs(data.astar.path), {
-      color: "#4ec3c1", weight: 4, opacity: 0.95,
-    }));
+    STATE.layers.raceAstar.addLayer(
+      L.polyline(pathLatLngs(data.astar.path), {
+        color: "#4ec3c1",
+        weight: 4,
+        opacity: 0.95,
+      }),
+    );
   }
   if (data.dijkstra.path && data.dijkstra.path.length >= 2) {
-    STATE.layers.raceDijkstra.addLayer(L.polyline(pathLatLngs(data.dijkstra.path), {
-      color: "#f08a4b", weight: 4, opacity: 0.85, dashArray: "5 7",
-    }));
+    STATE.layers.raceDijkstra.addLayer(
+      L.polyline(pathLatLngs(data.dijkstra.path), {
+        color: "#f08a4b",
+        weight: 4,
+        opacity: 0.85,
+        dashArray: "5 7",
+      }),
+    );
   }
 
   // Highlight winner card and write summary
@@ -579,22 +661,39 @@ async function runRace() {
     <strong>${winAlgo === "astar" ? "A*" : "Dijkstra"} reached the goal first.</strong>
     A* expanded <b>${aN}</b> nodes vs Dijkstra's <b>${dN}</b>
     (${saved >= 0 ? saved : 0} fewer, ${Math.max(0, +pct)}% saved).
-    ${sameCost
-      ? "Both algorithms found a path of equal cost — A* is just smarter about <em>which</em> nodes to look at."
-      : "Costs differ slightly because A* targets the goal directly while Dijkstra explores all directions."}
+    ${
+      sameCost
+        ? "Both algorithms found a path of equal cost — A* is just smarter about <em>which</em> nodes to look at."
+        : "Costs differ slightly because A* targets the goal directly while Dijkstra explores all directions."
+    }
   `;
   RACE.running = false;
 }
 
-function animateExpansion({order, prev, layer, color, counterId, fillId, stepMs, onFirstFinish}) {
+function animateExpansion({
+  order,
+  prev,
+  layer,
+  color,
+  counterId,
+  fillId,
+  stepMs,
+  onFirstFinish,
+}) {
   return new Promise((resolve) => {
-    if (!order || order.length === 0) { resolve(); return; }
+    if (!order || order.length === 0) {
+      resolve();
+      return;
+    }
     const counter = document.getElementById(counterId);
     const fill = document.getElementById(fillId);
     let i = 0;
     const total = order.length;
     const step = () => {
-      if (RACE.abort) { resolve(); return; }
+      if (RACE.abort) {
+        resolve();
+        return;
+      }
       if (i >= total) {
         if (onFirstFinish) onFirstFinish();
         resolve();
@@ -606,12 +705,18 @@ function animateExpansion({order, prev, layer, color, counterId, fillId, stepMs,
         if (prev && prev[id]) {
           const p = STATE.nodesById[prev[id]];
           if (p) {
-            const edgeLine = L.polyline([[p.y, p.x], [n.y, n.x]], {
-              color: color,
-              weight: 2,
-              opacity: 0.6,
-              dashArray: "4 4"
-            });
+            const edgeLine = L.polyline(
+              [
+                [p.y, p.x],
+                [n.y, n.x],
+              ],
+              {
+                color: color,
+                weight: 2,
+                opacity: 0.6,
+                dashArray: "4 4",
+              },
+            );
             STATE.layers[layer].addLayer(edgeLine);
           }
         }
@@ -630,13 +735,13 @@ function animateExpansion({order, prev, layer, color, counterId, fillId, stepMs,
           if (r > 12) {
             clearInterval(pulse);
             dot.setRadius(5);
-            dot.setStyle({fillOpacity: 0.9});
+            dot.setStyle({ fillOpacity: 0.9 });
           }
         }, 40);
       }
       i += 1;
       if (counter) counter.textContent = i;
-      if (fill) fill.style.width = ((i / total) * 100) + "%";
+      if (fill) fill.style.width = (i / total) * 100 + "%";
       setTimeout(step, stepMs);
     };
     step();
@@ -650,19 +755,24 @@ async function trainML() {
   const data = await fetch("/api/ml/train?force=true").then((r) => r.json());
   STATE.ml.trained = true;
   const fi = data.feature_importances
-    .map((f) => `<tr><td>${f.feature}</td><td>${(f.importance * 100).toFixed(1)}%</td></tr>`)
+    .map(
+      (f) =>
+        `<tr><td>${f.feature}</td><td>${(f.importance * 100).toFixed(1)}%</td></tr>`,
+    )
     .join("");
-  const trainTimeRow = data.train_time_ms != null
-    ? `<tr><th>Train time</th><td>${data.train_time_ms} ms</td></tr>`
-    : (data.train_ms != null
+  const trainTimeRow =
+    data.train_time_ms != null
+      ? `<tr><th>Train time</th><td>${data.train_time_ms} ms</td></tr>`
+      : data.train_ms != null
         ? `<tr><th>Train time</th><td>${data.train_ms} ms</td></tr>`
-        : "");
+        : "";
   const sourceRow = data.loaded_from_disk
     ? `<tr><th>Source</th><td>Loaded from disk · trained ${data.trained_at || "—"}</td></tr>`
     : `<tr><th>Source</th><td>Trained in-process</td></tr>`;
-  const rmseRow = data.test_rmse_vehicles_per_hour != null
-    ? `<tr><th>Test RMSE</th><td>${data.test_rmse_vehicles_per_hour} veh/h</td></tr>`
-    : "";
+  const rmseRow =
+    data.test_rmse_vehicles_per_hour != null
+      ? `<tr><th>Test RMSE</th><td>${data.test_rmse_vehicles_per_hour} veh/h</td></tr>`
+      : "";
   out.innerHTML = `
     <table>
       <tr><th>Model</th><td>${data.model}${data.n_estimators ? ` (${data.n_estimators} trees, depth ${data.max_depth})` : ""}</td></tr>
@@ -690,7 +800,9 @@ async function predictML() {
   const hour = +document.getElementById("ml-hour").value;
   const out = document.getElementById("ml-result");
   out.innerHTML = "Forecasting…";
-  const data = await fetch(`/api/ml/predict?hour=${hour}`).then((r) => r.json());
+  const data = await fetch(`/api/ml/predict?hour=${hour}`).then((r) =>
+    r.json(),
+  );
   if (data.error) {
     out.innerHTML = `<i>${data.error}</i>`;
     return;
@@ -702,8 +814,8 @@ async function predictML() {
     .map((r) => {
       const a = STATE.nodesById[r.a]?.name || r.a;
       const b = STATE.nodesById[r.b]?.name || r.b;
-      const ratioColor = r.vc_ratio > 1.0 ? "red"
-                       : r.vc_ratio > 0.85 ? "" : "green";
+      const ratioColor =
+        r.vc_ratio > 1.0 ? "red" : r.vc_ratio > 0.85 ? "" : "green";
       return `<tr><td>${a} ↔ ${b}</td><td>${r.predicted_vehicles_per_hour}</td>
               <td><span class="pill ${ratioColor}">V/C ${r.vc_ratio}</span></td></tr>`;
     })
@@ -718,7 +830,7 @@ async function predictML() {
       Roads on the map are now colored by predicted V/C ratio for the chosen hour.
     </p>
   `;
-  addDownloadBtn(out, data, `ml_forecast_h${String(hour).padStart(2,"0")}`);
+  addDownloadBtn(out, data, `ml_forecast_h${String(hour).padStart(2, "0")}`);
 }
 
 function recolorMapByForecast(roads) {
@@ -735,15 +847,23 @@ function recolorMapByForecast(roads) {
     else if (ratio < 0.85) color = "#e8b659";
     else if (ratio < 1.05) color = "#f08a4b";
     else color = "#ef4d68";
-    const line = L.polyline([[a.y, a.x], [b.y, b.x]], {
-      color, weight: 3.5, opacity: 0.9,
-      dashArray: r.is_existing ? null : "5 6",
-    });
+    const line = L.polyline(
+      [
+        [a.y, a.x],
+        [b.y, b.x],
+      ],
+      {
+        color,
+        weight: 3.5,
+        opacity: 0.9,
+        dashArray: r.is_existing ? null : "5 6",
+      },
+    );
     line.bindPopup(
       `<b>${a.name} ↔ ${b.name}</b><br>` +
-      `Predicted: ${r.predicted_vehicles_per_hour} veh/h<br>` +
-      `Capacity: ${r.capacity}<br>` +
-      `V/C: ${r.vc_ratio}`
+        `Predicted: ${r.predicted_vehicles_per_hour} veh/h<br>` +
+        `Capacity: ${r.capacity}<br>` +
+        `V/C: ${r.vc_ratio}`,
     );
     STATE.layers.ml.addLayer(line);
   }
@@ -754,28 +874,33 @@ async function predictCustomML() {
   const dist = +document.getElementById("ml-custom-dist").value;
   const cap = +document.getElementById("ml-custom-cap").value;
   const pop = +document.getElementById("ml-custom-pop").value;
-  const existing = document.getElementById("ml-custom-existing").checked ? 1 : 0;
-  
+  const existing = document.getElementById("ml-custom-existing").checked
+    ? 1
+    : 0;
+
   const out = document.getElementById("ml-custom-result");
   out.innerHTML = "Predicting...";
-  
+
   const params = new URLSearchParams({
     hour: hour,
     distance: dist,
     capacity: cap,
     pop: pop,
-    existing: existing
+    existing: existing,
   });
-  
-  const data = await fetch("/api/ml/predict_custom?" + params).then((r) => r.json());
-  
+
+  const data = await fetch("/api/ml/predict_custom?" + params).then((r) =>
+    r.json(),
+  );
+
   if (data.error) {
     out.innerHTML = `<i>${data.error}</i>`;
     return;
   }
-  
-  const ratioColor = data.vc_ratio > 1.0 ? "red" : data.vc_ratio > 0.85 ? "" : "green";
-  
+
+  const ratioColor =
+    data.vc_ratio > 1.0 ? "red" : data.vc_ratio > 0.85 ? "" : "green";
+
   out.innerHTML = `
     <table>
       <tr><th>Predicted Volume</th><td>${data.predicted_vehicles_per_hour} veh/h</td></tr>
@@ -790,14 +915,14 @@ async function runEmergency() {
   const dst = document.getElementById("er-target").value;
   const period = document.getElementById("er-period").value;
   document.getElementById("er-result").innerHTML = "Dispatching…";
-  const params = new URLSearchParams({source: src, period});
+  const params = new URLSearchParams({ source: src, period });
   if (dst) params.set("target", dst);
   const data = await fetch("/api/emergency?" + params).then((r) => r.json());
   if (!data.path || data.path.length < 2) {
     document.getElementById("er-result").innerHTML = "<i>No route found.</i>";
     return;
   }
-  drawPath("emergency", data.path, {color: "#ef4d68", weight: 6});
+  drawPath("emergency", data.path, { color: "#ef4d68", weight: 6 });
   const facilityName = data.facility_id
     ? STATE.nodesById[data.facility_id]?.name
     : null;
@@ -818,20 +943,26 @@ async function runEmergency() {
     </table>
     ${noteHtml}
   `;
-  addDownloadBtn(document.getElementById("er-result"), data, "emergency_result");
+  addDownloadBtn(
+    document.getElementById("er-result"),
+    data,
+    "emergency_result",
+  );
 }
 
 // ---------------- Transit ----------------
 async function runTransit() {
   const v = document.getElementById("transit-vehicles").value;
   document.getElementById("transit-result").innerHTML = "Optimizing schedule…";
-  const data = await fetch("/api/transit/schedule?total_vehicles=" + v).then((r) => r.json());
+  const data = await fetch("/api/transit/schedule?total_vehicles=" + v).then(
+    (r) => r.json(),
+  );
   let rows = data.plan
     .filter((p) => p.vehicles_assigned > 0)
     .sort((a, b) => b.estimated_passengers - a.estimated_passengers)
     .map(
       (p) =>
-        `<tr><td>${p.kind === "metro" ? "🚇" : "🚌"} ${p.name}</td><td>${p.vehicles_assigned}</td><td>${p.estimated_passengers.toLocaleString()}</td></tr>`
+        `<tr><td>${p.kind === "metro" ? "🚇" : "🚌"} ${p.name}</td><td>${p.vehicles_assigned}</td><td>${p.estimated_passengers.toLocaleString()}</td></tr>`,
     )
     .join("");
   document.getElementById("transit-result").innerHTML = `
@@ -845,14 +976,20 @@ async function runTransit() {
     </table>
     <p class="muted" style="margin-top:8px;font-size:11px;">${data.complexity} · solved in ${data.elapsed_ms} ms</p>
   `;
-  addDownloadBtn(document.getElementById("transit-result"), data, "transit_schedule");
+  addDownloadBtn(
+    document.getElementById("transit-result"),
+    data,
+    "transit_schedule",
+  );
 }
 
 // ---------------- Maintenance ----------------
 async function runMaintenance() {
   const b = document.getElementById("maint-budget").value;
   document.getElementById("maint-result").innerHTML = "Optimizing budget…";
-  const data = await fetch("/api/maintenance?budget=" + b).then((r) => r.json());
+  const data = await fetch("/api/maintenance?budget=" + b).then((r) =>
+    r.json(),
+  );
   let rows = data.chosen
     .map((c) => {
       const a = STATE.nodesById[c.a]?.name || c.a;
@@ -871,20 +1008,29 @@ async function runMaintenance() {
     </table>
     <p class="muted" style="margin-top:8px;font-size:11px;">${data.complexity} · solved in ${data.elapsed_ms} ms</p>
   `;
-  addDownloadBtn(document.getElementById("maint-result"), data, "maintenance_plan");
+  addDownloadBtn(
+    document.getElementById("maint-result"),
+    data,
+    "maintenance_plan",
+  );
 }
 
 // ---------------- Signals ----------------
 async function runSignals() {
   const period = document.getElementById("sig-period").value;
   document.getElementById("sig-result").innerHTML = "Optimizing signals…";
-  const data = await fetch("/api/signals?period=" + period).then((r) => r.json());
+  const data = await fetch("/api/signals?period=" + period).then((r) =>
+    r.json(),
+  );
   const top = data.intersections.slice(0, 8);
   const rows = top
     .map((i) => {
       const name = STATE.nodesById[i.intersection]?.name || i.intersection;
       const greens = i.allocations
-        .map((a) => `${STATE.nodesById[a.approach_from]?.name || a.approach_from}: ${a.green_seconds}s`)
+        .map(
+          (a) =>
+            `${STATE.nodesById[a.approach_from]?.name || a.approach_from}: ${a.green_seconds}s`,
+        )
         .join("<br>");
       return `<tr><td><b>${name}</b><br><span style="color:var(--muted);font-size:11px">${i.total_flow_vph} veh/h total</span></td><td>${greens}</td></tr>`;
     })
@@ -897,32 +1043,47 @@ async function runSignals() {
     </table>
     <p class="muted" style="margin-top:8px;font-size:11px;">${data.complexity}</p>
   `;
-  addDownloadBtn(document.getElementById("sig-result"), data, "signal_optimization");
+  addDownloadBtn(
+    document.getElementById("sig-result"),
+    data,
+    "signal_optimization",
+  );
 }
 
 // ---------------- Wiring ----------------
 function bindControls() {
-  ["show-existing", "show-potential", "show-metro", "show-labels", "period-select"].forEach(
-    (id) => document.getElementById(id).addEventListener("change", drawNetwork)
+  [
+    "show-existing",
+    "show-potential",
+    "show-metro",
+    "show-labels",
+    "period-select",
+  ].forEach((id) =>
+    document.getElementById(id).addEventListener("change", drawNetwork),
   );
   document.getElementById("mst-run").addEventListener("click", runMST);
   document.getElementById("route-run").addEventListener("click", runRoute);
   document.getElementById("route-clear").addEventListener("click", clearRoute);
   document.getElementById("er-run").addEventListener("click", runEmergency);
   document.getElementById("transit-run").addEventListener("click", runTransit);
-  document.getElementById("maint-run").addEventListener("click", runMaintenance);
+  document
+    .getElementById("maint-run")
+    .addEventListener("click", runMaintenance);
   document.getElementById("sig-run").addEventListener("click", runSignals);
   document.getElementById("race-run").addEventListener("click", runRace);
   document.getElementById("race-clear").addEventListener("click", clearRace);
   const speedSlider = document.getElementById("race-speed");
   speedSlider.addEventListener("input", () => {
     const v = +speedSlider.value;
-    const label = v < 120 ? "Fast" : v < 260 ? "Normal" : v < 380 ? "Slow" : "Very slow";
+    const label =
+      v < 120 ? "Fast" : v < 260 ? "Normal" : v < 380 ? "Slow" : "Very slow";
     document.getElementById("race-speed-label").textContent = label;
   });
   document.getElementById("ml-train").addEventListener("click", trainML);
   document.getElementById("ml-predict").addEventListener("click", predictML);
-  document.getElementById("ml-custom-predict").addEventListener("click", predictCustomML);
+  document
+    .getElementById("ml-custom-predict")
+    .addEventListener("click", predictCustomML);
   const hourSlider = document.getElementById("ml-hour");
   hourSlider.addEventListener("input", () => {
     document.getElementById("ml-hour-label").textContent =

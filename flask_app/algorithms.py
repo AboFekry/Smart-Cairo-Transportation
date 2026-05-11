@@ -19,6 +19,7 @@ from typing import Dict, List, Tuple, Optional
 
 from data import (
     EXISTING_ROADS,
+    SYNTHETIC_EDGES,
     POTENTIAL_ROADS,
     TRAFFIC_FLOW,
     NEIGHBORHOODS,
@@ -43,9 +44,10 @@ def build_graph(include_potential: bool = False):
     kind in {"existing", "potential"}.
     """
     adj: Dict[str, List[Tuple[str, float, int, str, dict]]] = defaultdict(list)
-    for a, b, dist, cap, cond in EXISTING_ROADS:
-        adj[a].append((b, dist, cap, "existing", {"condition": cond}))
-        adj[b].append((a, dist, cap, "existing", {"condition": cond}))
+    for e in EXISTING_ROADS + SYNTHETIC_EDGES:
+        a, b = e["from"], e["to"]
+        adj[a].append((b, e["distance_km"], e["capacity"], "existing", {"condition": e["condition"], "synthetic": e.get("synthetic", False)}))
+        adj[b].append((a, e["distance_km"], e["capacity"], "existing", {"condition": e["condition"], "synthetic": e.get("synthetic", False)}))
     if include_potential:
         for a, b, dist, cap, cost in POTENTIAL_ROADS:
             adj[a].append((b, dist, cap, "potential", {"cost_million_egp": cost}))
@@ -102,15 +104,17 @@ def kruskal_mst(prioritize_population: bool = True,
 
     # Build candidate edge list
     edges = []
-    for a, b, dist, cap, cond in EXISTING_ROADS:
-        w = dist  # km — already-built road
+    for e in EXISTING_ROADS + SYNTHETIC_EDGES:
+        w = e["distance_km"]
+        if e.get("synthetic"):
+            w *= 1.5  # penalty for synthetic edges
         if prioritize_population:
-            pop_score = (pop.get(a, 0) + pop.get(b, 0)) / (2 * max_pop)
+            pop_score = (pop.get(e["from"], 0) + pop.get(e["to"], 0)) / (2 * max_pop)
             w *= (1.0 - 0.25 * pop_score)  # up to 25% discount
         edges.append({
-            "a": a, "b": b, "distance": dist, "capacity": cap,
+            "a": e["from"], "b": e["to"], "distance": e["distance_km"], "capacity": e["capacity"],
             "kind": "existing", "weight": w, "cost_million_egp": 0.0,
-            "condition": cond,
+            "condition": e["condition"], "synthetic": e.get("synthetic", False),
         })
     for a, b, dist, cap, cost in POTENTIAL_ROADS:
         # Cost-based weight for new construction
@@ -256,12 +260,14 @@ def dijkstra(source: str,
             if u not in seen:
                 seen.add(u)
                 visited_order.append(u)
-            for v, dist_km, cap, _kind, _meta in adj[u]:
+            for v, dist_km, cap, _kind, meta in adj[u]:
                 if period:
                     flow = _flow_for_period(u, v, period)
                     w = edge_travel_time_minutes(dist_km, cap, flow)
                 else:
                     w = dist_km
+                if meta.get("synthetic"):
+                    w *= 1.5  # penalty for synthetic edges
                 nd = d + w
                 if nd < dist[v]:
                     dist[v] = nd
@@ -341,7 +347,7 @@ def a_star(source: str,
         if u not in seen_nodes:
             seen_nodes.add(u)
             visited_order.append(u)
-        for v, dist_km, cap, _kind, _meta in adj[u]:
+        for v, dist_km, cap, _kind, meta in adj[u]:
             if period:
                 flow = _flow_for_period(u, v, period)
                 w = edge_travel_time_minutes(dist_km, cap, flow)
@@ -349,6 +355,8 @@ def a_star(source: str,
                     w *= 0.7  # signal preemption + clear-the-road effect
             else:
                 w = dist_km
+            if meta.get("synthetic"):
+                w *= 1.5  # penalty for synthetic edges
             ng = d + w
             if ng < g[v]:
                 g[v] = ng

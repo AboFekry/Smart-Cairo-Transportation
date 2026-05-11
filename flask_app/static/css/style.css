@@ -78,6 +78,7 @@ h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: 0.5px; }
   vertical-align: middle;
 }
 .legend-pill.existing::before  { background: var(--existing); }
+.legend-pill.synthetic::before { background: var(--potential); border: 1px dashed #fff; }
 .legend-pill.potential::before { background: var(--potential); border: 1px dashed #fff; }
 .legend-pill.mst::before       { background: var(--mst); }
 .legend-pill.route::before     { background: var(--route); }

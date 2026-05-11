@@ -19,6 +19,7 @@ from data import (
     NEIGHBORHOODS,
     FACILITIES,
     EXISTING_ROADS,
+    SYNTHETIC_EDGES,
     POTENTIAL_ROADS,
     TRAFFIC_FLOW,
     METRO_LINES,
@@ -126,12 +127,12 @@ def api_network():
         n["medical"]  = n["id"] in med
 
     edges = []
-    for a, b, dist, cap, cond in EXISTING_ROADS:
-        key   = road_key(a, b)
+    for e in EXISTING_ROADS + SYNTHETIC_EDGES:
+        key   = road_key(e["from"], e["to"])
         flows = TRAFFIC_FLOW.get(key)
         edges.append({
-            "a": a, "b": b, "distance_km": dist, "capacity": cap,
-            "condition": cond, "kind": "existing",
+            "a": e["from"], "b": e["to"], "distance_km": e["distance_km"], "capacity": e["capacity"],
+            "condition": e["condition"], "kind": "existing", "synthetic": e.get("synthetic", False),
             "morning":   flows[0] if flows else None,
             "afternoon": flows[1] if flows else None,
             "evening":   flows[2] if flows else None,

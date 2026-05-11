@@ -18,11 +18,12 @@
       <div class="brand">
         <div class="brand-mark">CTN</div>
         <div>
-          <h1>Cairo Smart Transportation Network</h1> 
+          <h1>Cairo Smart Transportation Network</h1>
         </div>
       </div>
       <div class="legend">
         <span class="legend-pill existing">Existing road</span>
+        <span class="legend-pill synthetic">Synthetic edge</span>
         <span class="legend-pill potential">Potential road</span>
         <span class="legend-pill mst">MST edge</span>
         <span class="legend-pill route">Route</span>
@@ -57,6 +58,10 @@
           <label class="checkbox">
             <input type="checkbox" id="show-existing" checked />
             <span>Show existing roads</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="show-synthetic" checked />
+            <span>Show synthetic edges</span>
           </label>
           <label class="checkbox">
             <input type="checkbox" id="show-potential" />
@@ -302,20 +307,56 @@
             Predict &amp; recolor map
           </button>
           <div class="result" id="ml-result"></div>
-          
-          <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);" />
+
+          <hr
+            style="
+              margin: 20px 0;
+              border: 0;
+              border-top: 1px solid var(--border);
+            "
+          />
           <h3>Custom Prediction</h3>
-          <p class="muted">Enter hypothetical features to predict traffic for a specific road.</p>
-          <label>Distance (km): <input type="number" id="ml-custom-dist" class="input" value="5" step="0.1" min="0"></label>
-          <label>Capacity (veh/h): <input type="number" id="ml-custom-cap" class="input" value="3000" step="100" min="0"></label>
-          <label>Mean Population: <input type="number" id="ml-custom-pop" class="input" value="50000" step="1000" min="0"></label>
+          <p class="muted">
+            Enter hypothetical features to predict traffic for a specific road.
+          </p>
+          <label
+            >Distance (km):
+            <input
+              type="number"
+              id="ml-custom-dist"
+              class="input"
+              value="5"
+              step="0.1"
+              min="0"
+          /></label>
+          <label
+            >Capacity (veh/h):
+            <input
+              type="number"
+              id="ml-custom-cap"
+              class="input"
+              value="3000"
+              step="100"
+              min="0"
+          /></label>
+          <label
+            >Mean Population:
+            <input
+              type="number"
+              id="ml-custom-pop"
+              class="input"
+              value="50000"
+              step="1000"
+              min="0"
+          /></label>
           <label class="checkbox">
             <input type="checkbox" id="ml-custom-existing" checked />
             <span>Is Existing Road</span>
           </label>
-          <button class="btn primary" id="ml-custom-predict">Predict Custom Features</button>
+          <button class="btn primary" id="ml-custom-predict">
+            Predict Custom Features
+          </button>
           <div class="result" id="ml-custom-result"></div>
-
         </section>
       </aside>
 
